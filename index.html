@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exercise Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            color: #fff;
+        }
+        .page {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+            padding: 20px;
+            width: 100%;
+            height: 100%;
+        }
+        .active {
+            display: flex;
+        }
+        h1 {
+            font-size: 2rem;
+            color: #fff;
+            margin-bottom: 2rem;
+        }
+        label {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #ccc;
+            width: 100%;
+        }
+        select, input, button {
+            font-size: 1.2rem;
+            margin: 0.5rem 0;
+            padding: 10px 15px;
+            width: 90%;
+            max-width: 350px;
+            border-radius: 8px;
+            border: none;
+            outline: none;
+            text-align: center;
+        }
+        select, input {
+            background-color: #333;
+            color: #fff;
+        }
+        button {
+            background-color: #ff007f;
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #ff3366;
+        }
+        /* Dynamic Island Style with Round Progress */
+        .dynamic-island {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 35px;
+            z-index: 10;
+        }
+        .circle-progress {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .circle-progress svg {
+            transform: rotate(-90deg);
+            width: 100%;
+            height: 100%;
+        }
+        .circle-progress circle {
+            fill: none;
+            stroke-width: 10;
+        }
+        .circle-background {
+            stroke: #333;
+        }
+        .circle-foreground {
+            stroke: #ff007f;
+            stroke-dasharray: 251.2;
+            transition: stroke-dashoffset 0.3s;
+        }
+        .reps-count {
+            position: absolute;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #fff;
+        }
+        .island-content {
+            margin-left: 15px;
+            text-align: left;
+        }
+        .island-content h2 {
+            font-size: 1.4rem;
+            margin: 0;
+            color: #fff;
+        }
+        /* Rest Timer Styling */
+        .rest-timer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            color: #ff007f;
+            display: none;
+            text-align: center;
+        }
+        /* Full-screen Video Styling */
+        #video-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+        }
+        video, canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .completed-message {
+            font-size: 2rem;
+            color: #28a745;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .home-button {
+            font-size: 1rem;
+            padding: 10px 20px;
+            background-color: #ff007f;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .home-button:hover {
+            background-color: #ff3366;
+        }
+    </style>
+</head>
+<body>
+    <!-- Page 1: Exercise Selection -->
+    <div id="question1" class="page active">
+        <h1>Select Your Exercise</h1>
+        <label for="exercise">What exercise would you like to do?</label>
+        <select id="exercise" required>
+            <option value="curls">Dumbbell Curls</option>
+            <option value="squats">Squats</option>
+            <option value="jumpingjacks">Jumping Jacks</option>
+        </select>
+        <button onclick="nextQuestion('question1', 'question2')">Next</button>
+    </div>
+
+    <div id="question2" class="page">
+        <h1>Select Sets</h1>
+        <label for="sets">How many sets do you want to do?</label>
+        <input type="number" id="sets" min="1" required>
+        <button onclick="nextQuestion('question2', 'question3')">Next</button>
+    </div>
+
+    <div id="question3" class="page">
+        <h1>Select Reps</h1>
+        <label for="reps">How many reps per set?</label>
+        <input type="number" id="reps" min="1" required>
+        <button onclick="nextQuestion('question3', 'question4')">Next</button>
+    </div>
+
+    <div id="question4" class="page">
+        <h1>Rest Time</h1>
+        <label for="restTime">How many seconds of rest would you like between sets?</label>
+        <input type="number" id="restTime" min="5" required>
+        <button onclick="startExercise()">Start Exercise</button>
+    </div>
+
+    <!-- Page 2: Exercise Tracking with Full-Screen Video -->
+    <div id="exercisePage" class="page">
+        <div id="video-container">
+            <video id="webcam" autoplay playsinline></video>
+            <canvas id="output"></canvas>
+        </div>
+        <!-- Dynamic Island with Round Progress Bar -->
+        <div class="dynamic-island" id="counter">
+            <div class="circle-progress">
+                <svg>
+                    <circle class="circle-background" cx="40" cy="40" r="40"></circle>
+                    <circle class="circle-foreground" cx="40" cy="40" r="40" style="stroke-dashoffset: 251.2;"></circle>
+                </svg>
+                <div class="reps-count" id="reps-count">0</div>
+            </div>
+            <div class="island-content">
+                <h2 id="exercise-name"></h2>
+            </div>
+        </div>
+        <!-- Rest Timer Display -->
+        <div class="rest-timer" id="rest-timer">Rest: <span id="timer">0</span>s</div>
+    </div>
+
+    <!-- Page 3: Exercise Completed -->
+    <div id="completedPage" class="page">
+        <div class="completed-message">EXERCISE COMPLETED</div>
+        <button class="home-button" onclick="goToHome()">Go to Home</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
+    <script>
+        function nextQuestion(current, next) {
+            document.getElementById(current).classList.remove('active');
+            document.getElementById(next).classList.add('active');
+        }
+
+        const videoElement = document.getElementById('webcam');
+        const canvasElement = document.getElementById('output');
+        const canvasCtx = canvasElement.getContext('2d');
+        const counterElement = document.getElementById('reps-count');
+        const exerciseNameElement = document.getElementById('exercise-name');
+        const progressCircle = document.querySelector('.circle-foreground');
+        const restTimerElement = document.getElementById('rest-timer');
+        const restCountdown = document.getElementById('timer');
+
+        let exercise, sets, repsPerSet, currentReps, currentSet, restTime, stage;
+        let isResting = false; // Flag to control exercise tracking during rest time
+        const circleCircumference = 251.2; // Circumference based on radius in SVG (r=40)
+
+        function startExercise() {
+            exercise = document.getElementById('exercise').value;
+            sets = parseInt(document.getElementById('sets').value);
+            repsPerSet = parseInt(document.getElementById('reps').value);
+            restTime = parseInt(document.getElementById('restTime').value);
+            currentReps = 0;
+            currentSet = 1;
+            stage = null;
+            isResting = false;
+
+            exerciseNameElement.innerText = exercise.charAt(0).toUpperCase() + exercise.slice(1);
+            document.getElementById('question4').classList.remove('active');
+            document.getElementById('exercisePage').classList.add('active');
+
+            initializeExerciseTracking();
+        }
+
+        function updateProgress() {
+            const progress = (currentReps / repsPerSet) * circleCircumference;
+            progressCircle.style.stroke-dashoffset = circleCircumference - progress;
+            counterElement.innerText = currentReps;
+        }
+
+        function initializeExerciseTracking() {
+            const pose = new Pose({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+            });
+            pose.setOptions({
+                modelComplexity: 1,
+                smoothLandmarks: true,
+                enableSegmentation: false,
+                minDetectionConfidence: 0.6,
+                minTrackingConfidence: 0.6
+            });
+
+            pose.onResults(onPoseResults);
+            setupCamera(pose);
+        }
+
+        async function setupCamera(pose) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 1280, height: 720 }
+                });
+                videoElement.srcObject = stream;
+
+                videoElement.onloadedmetadata = () => {
+                    videoElement.play();
+                    canvasElement.width = videoElement.videoWidth;
+                    canvasElement.height = videoElement.videoHeight;
+
+                    const camera = new Camera(videoElement, {
+                        onFrame: async () => {
+                            await pose.send({ image: videoElement });
+                        },
+                        width: 1280,
+                        height: 720
+                    });
+                    camera.start();
+                };
+            } catch (error) {
+                console.error("Error setting up camera:", error);
+            }
+        }
+
+        function onPoseResults(results) {
+            if (isResting) return; // Skip tracking during rest period
+
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            if (results.poseLandmarks) {
+                drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS,
+                               { color: '#00FF00', lineWidth: 4 });
+                drawLandmarks(canvasCtx, results.poseLandmarks,
+                              { color: '#FF0000', lineWidth: 2 });
+
+                if (exercise === "squats") {
+                    trackSquats(results.poseLandmarks);
+                } else if (exercise === "curls") {
+                    trackCurls(results.poseLandmarks);
+                } else if (exercise === "jumpingjacks") {
+                    trackJumpingJacks(results.poseLandmarks);
+                }
+            }
+        }
+
+        function calculateAngle(a, b, c) {
+            const radians = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
+            let angle = Math.abs(radians * 180.0 / Math.PI);
+            if (angle > 180.0) angle = 360 - angle;
+            return angle;
+        }
+
+        function trackSquats(landmarks) {
+            const hip = landmarks[24];
+            const knee = landmarks[26];
+            const ankle = landmarks[28];
+            const angle = calculateAngle(hip, knee, ankle);
+
+            if (angle > 160) stage = "up";
+            if (angle < 70 && stage === "up") {
+                stage = "down";
+                incrementReps();
+            }
+        }
+
+        function trackCurls(landmarks) {
+            const shoulder = landmarks[12];
+            const elbow = landmarks[14];
+            const wrist = landmarks[16];
+            const angle = calculateAngle(shoulder, elbow, wrist);
+
+            if (angle > 160) stage = "down";
+            if (angle < 30 && stage === "down") {
+                stage = "up";
+                incrementReps();
+            }
+        }
+
+        function trackJumpingJacks(landmarks) {
+            const leftShoulder = landmarks[11];
+            const rightShoulder = landmarks[12];
+            const leftWrist = landmarks[15];
+            const rightWrist = landmarks[16];
+            const leftHandAboveShoulder = leftWrist.y < leftShoulder.y - 0.15;
+            const rightHandAboveShoulder = rightWrist.y < rightShoulder.y - 0.15;
+
+            if (leftHandAboveShoulder && rightHandAboveShoulder) {
+                stage = "up";
+            } else if (stage === "up" && !leftHandAboveShoulder && !rightHandAboveShoulder) {
+                stage = "down";
+                incrementReps();
+            }
+        }
+
+        function incrementReps() {
+            currentReps++;
+            updateProgress();
+
+            if (currentReps >= repsPerSet) {
+                currentReps = 0;
+                currentSet++;
+                if (currentSet > sets) {
+                    showCompletionPage();
+                } else {
+                    startRestTimer();
+                }
+            }
+        }
+
+        function startRestTimer() {
+            isResting = true; // Activate rest period
+            restTimerElement.style.display = 'block';
+            let timeLeft = restTime;
+            restCountdown.innerText = timeLeft;
+
+            const restInterval = setInterval(() => {
+                timeLeft--;
+                restCountdown.innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(restInterval);
+                    restTimerElement.style.display = 'none';
+                    isResting = false; // Deactivate rest period and resume exercise tracking
+                }
+            }, 1000);
+        }
+
+        function showCompletionPage() {
+            document.getElementById('exercisePage').classList.remove('active');
+            document.getElementById('completedPage').classList.add('active');
+        }
+
+        function goToHome() {
+            document.getElementById('completedPage').classList.remove('active');
+            document.getElementById('question1').classList.add('active');
+        }
+    </script>
+</body>
+</html>
